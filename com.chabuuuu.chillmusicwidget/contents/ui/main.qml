@@ -12,7 +12,7 @@ Item {
     implicitWidth: 860
     implicitHeight: 230
 
-    // Set Plasmoid configuration
+    // Set Plasmoid background hints
     Plasmoid.backgroundHints: Plasmoid.NoBackground
 
     // --- State & Variables ---
@@ -23,7 +23,7 @@ Item {
     property double trackPosition: 0
     property double trackLength: 0
 
-    // Fallbacks for system stats in case sensors differ on standard systems
+    // Fallbacks for system stats
     property double cpuUsage: 14
     property double ramUsage: 3.2
     property double ramTotal: 16.0
@@ -75,7 +75,6 @@ Item {
             if (meta) {
                 root.songTitle = meta["xesam:title"] || "Unknown Title"
                 
-                // Format Artist array/string
                 var artist = meta["xesam:artist"];
                 if (Array.isArray(artist)) {
                     root.songArtist = artist.join(", ");
@@ -84,8 +83,6 @@ Item {
                 }
 
                 root.albumArt = meta["mpris:artUrl"] || ""
-                
-                // Track positions & lengths in microseconds
                 root.trackLength = (meta["mpris:length"] || 0) / 1000000.0;
             }
 
@@ -122,7 +119,7 @@ Item {
         }
     }
 
-    // --- Local Timer for Smooth Updates & fallback battery/temp animations ---
+    // --- Timer for Smooth Updates ---
     Timer {
         id: updateTimer
         interval: 1000
@@ -132,7 +129,6 @@ Item {
             if (root.isPlaying) {
                 root.trackPosition = Math.min(root.trackLength, root.trackPosition + 1.0);
             }
-            // Ambient temperature simulation to keep widgets dynamic
             root.cpuTemp = 42 + Math.random() * 6;
         }
     }
@@ -152,6 +148,7 @@ Item {
         service.startOperationCall(operation);
     }
 
+    // ==================== GORGEOUS PIXEL-PERFECT GLASSMORPHISM CONTAINER ====================
     Rectangle {
         id: widgetBackground
         width: 860
@@ -172,137 +169,161 @@ Item {
             hoverEnabled: true
         }
 
-        // --- ROW LAYOUT: Music Panel & System Stats Panel ---
-        RowLayout {
-            anchors.fill: parent
-            anchors.margins: 20
-            spacing: 24
+        // ==================== LEFT AREA: MUSIC PLAYER ====================
+        Item {
+            x: 20
+            y: 20
+            width: 560
+            height: 190
 
-            // ==================== LEFT: MUSIC CONTROLLER (512px Width) ====================
-            RowLayout {
-                Layout.preferredWidth: 512
-                Layout.fillHeight: true
-                spacing: 20
+            // 1. Album Art (120x120)
+            Rectangle {
+                id: artContainer
+                x: 0
+                y: 15
+                width: 120
+                height: 120
+                radius: 16
+                clip: true
+                color: Qt.rgba(255, 255, 255, 0.15)
+                border.color: Qt.rgba(255, 255, 255, 0.2)
+                border.width: 1
 
-                // Album Art
-                Rectangle {
-                    Layout.preferredWidth: 120
-                    Layout.preferredHeight: 120
-                    radius: 16
-                    clip: true
-                    color: Qt.rgba(255, 255, 255, 0.15)
-                    border.color: Qt.rgba(255, 255, 255, 0.2)
-                    border.width: 1
+                Image {
+                    anchors.fill: parent
+                    source: root.albumArt || "multimedia-audio-player"
+                    fillMode: Image.PreserveAspectCrop
+                    smooth: true
+                }
+            }
 
-                    Image {
-                        anchors.fill: parent
-                        source: root.albumArt || "multimedia-audio-player"
-                        fillMode: Image.PreserveAspectCrop
-                        smooth: true
+            // 2. Song Info Column (X: 140, Width: 400)
+            Item {
+                x: 140
+                y: 10
+                width: 400
+                height: 170
+
+                // Song Title
+                Text {
+                    id: songTitleText
+                    x: 0
+                    y: 0
+                    width: 400
+                    text: root.songTitle
+                    font.pixelSize: 18
+                    font.bold: true
+                    color: "#ffffff"
+                    elide: Text.ElideRight
+                }
+
+                // Song Artist
+                Text {
+                    id: songArtistText
+                    x: 0
+                    y: 24
+                    width: 400
+                    text: root.songArtist
+                    font.pixelSize: 13
+                    color: Qt.rgba(255, 255, 255, 0.65)
+                    elide: Text.ElideRight
+                }
+
+                // 15-Bar Soundwave Visualizer
+                WaveformVisualizer {
+                    id: visualizer
+                    x: 0
+                    y: 48
+                    width: 400
+                    height: 36
+                    isPlaying: root.isPlaying
+                }
+
+                // Seekbar with custom high-contrast white text timestamps
+                Item {
+                    x: 0
+                    y: 92
+                    width: 400
+                    height: 24
+
+                    Text {
+                        id: timeCurrent
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.formatTime(root.trackPosition)
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "#ffffff"
+                    }
+
+                    Slider {
+                        id: progressSlider
+                        anchors.left: timeCurrent.right
+                        anchors.right: timeTotal.left
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        from: 0
+                        to: Math.max(1, root.trackLength)
+                        value: root.trackPosition
+                        
+                        background: Rectangle {
+                            x: progressSlider.leftPadding
+                            y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
+                            implicitWidth: 200
+                            implicitHeight: 4
+                            width: progressSlider.availableWidth
+                            height: implicitHeight
+                            radius: 2
+                            color: Qt.rgba(255, 255, 255, 0.2)
+
+                            Rectangle {
+                                width: progressSlider.visualPosition * parent.width
+                                height: parent.height
+                                color: "#ffffff"
+                                radius: 2
+                            }
+                        }
+
+                        handle: Rectangle {
+                            x: progressSlider.leftPadding + progressSlider.visualPosition * (progressSlider.availableWidth - width)
+                            y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
+                            implicitWidth: 10
+                            implicitHeight: 10
+                            radius: 5
+                            color: "#ffffff"
+                        }
+
+                        onMoved: {
+                            if (mprisSource.activePlayer) {
+                                var service = mprisSource.serviceForSource(mprisSource.activePlayer);
+                                var operation = service.operationDescription("SetPosition");
+                                operation.position = progressSlider.value * 1000000.0;
+                                service.startOperationCall(operation);
+                            }
+                        }
+                    }
+
+                    Text {
+                        id: timeTotal
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.formatTime(root.trackLength)
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "#ffffff"
                     }
                 }
 
-                // Song Info, Waveform & Controls
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    spacing: 8
+                // Media Control Buttons (Prev, Play, Next)
+                Item {
+                    x: 0
+                    y: 126
+                    width: 400
+                    height: 36
 
-                    // Title & Artist
-                    ColumnLayout {
-                        spacing: 2
-                        Text {
-                            text: root.songTitle
-                            font.pixelSize: 18
-                            font.bold: true
-                            color: "#ffffff"
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
-                        }
-                        Text {
-                            text: root.songArtist
-                            font.pixelSize: 13
-                            color: Qt.rgba(255, 255, 255, 0.65)
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    // Soundwave visualizer
-                    WaveformVisualizer {
-                        id: visualizer
-                        isPlaying: root.isPlaying
-                        Layout.preferredHeight: 36
-                        Layout.fillWidth: true
-                    }
-
-                    // Seekbar with custom high-contrast white text timestamps
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-
-                        Text {
-                            text: root.formatTime(root.trackPosition)
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: "#ffffff"
-                        }
-
-                        Slider {
-                            id: progressSlider
-                            Layout.fillWidth: true
-                            from: 0
-                            to: Math.max(1, root.trackLength)
-                            value: root.trackPosition
-                            
-                            background: Rectangle {
-                                x: progressSlider.leftPadding
-                                y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
-                                implicitWidth: 200
-                                implicitHeight: 4
-                                width: progressSlider.availableWidth
-                                height: implicitHeight
-                                radius: 2
-                                color: Qt.rgba(255, 255, 255, 0.2)
-
-                                Rectangle {
-                                    width: progressSlider.visualPosition * parent.width
-                                    height: parent.height
-                                    color: "#ffffff"
-                                    radius: 2
-                                }
-                            }
-
-                            handle: Rectangle {
-                                x: progressSlider.leftPadding + progressSlider.visualPosition * (progressSlider.availableWidth - width)
-                                y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
-                                implicitWidth: 10
-                                implicitHeight: 10
-                                radius: 5
-                                color: "#ffffff"
-                            }
-
-                            onMoved: {
-                                if (mprisSource.activePlayer) {
-                                    var service = mprisSource.serviceForSource(mprisSource.activePlayer);
-                                    var operation = service.operationDescription("SetPosition");
-                                    operation.position = progressSlider.value * 1000000.0;
-                                    service.startOperationCall(operation);
-                                }
-                            }
-                        }
-
-                        Text {
-                            text: root.formatTime(root.trackLength)
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: "#ffffff"
-                        }
-                    }
-
-                    // Media Control Buttons (Prev, Play, Next)
-                    RowLayout {
-                        Layout.alignment: Qt.AlignHCenter
+                    Row {
+                        anchors.centerIn: parent
                         spacing: 24
 
                         PlasmaComponents.ToolButton {
@@ -325,124 +346,252 @@ Item {
                     }
                 }
             }
+        }
 
-            // Vertical separator line
-            Rectangle {
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                color: Qt.rgba(255, 255, 255, 0.2)
-            }
+        // ==================== VERTICAL SEPARATOR LINE ====================
+        Rectangle {
+            x: 600
+            y: 20
+            width: 1
+            height: 190
+            color: Qt.rgba(255, 255, 255, 0.2)
+        }
 
-            // ==================== RIGHT: SYSTEM INFO PANEL (220px Width) ====================
-            ColumnLayout {
-                Layout.preferredWidth: 220
-                Layout.fillHeight: true
-                spacing: 12
+        // ==================== RIGHT AREA: SYSTEM INFO & CLOCK ====================
+        Item {
+            x: 620
+            y: 20
+            width: 220
+            height: 190
 
-                // Live Clock & Calendar Header
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
+            // 1. Clock & Date Header
+            Item {
+                x: 0
+                y: 10
+                width: 220
+                height: 30
+
+                Text {
+                    id: clockText
+                    anchors.left: parent.left
+                    anchors.bottom: parent.bottom
+                    text: Qt.formatTime(new Date(), "HH:mm")
+                    font.pixelSize: 22
+                    font.bold: true
+                    color: "#ffffff"
                     
-                    Text {
-                        id: clockText
-                        text: Qt.formatTime(new Date(), "HH:mm")
-                        font.pixelSize: 22
-                        font.bold: true
-                        color: "#ffffff"
-                        
-                        Timer {
-                            interval: 1000
-                            running: true
-                            repeat: true
-                            onTriggered: clockText.text = Qt.formatTime(new Date(), "HH:mm")
-                        }
-                    }
-
-                    Text {
-                        id: dateText
-                        text: Qt.formatDate(new Date(), "ddd, d MMM").toUpperCase()
-                        font.pixelSize: 11
-                        font.bold: true
-                        color: Qt.rgba(255, 255, 255, 0.6)
-                        Layout.alignment: Qt.AlignBottom
-                        
-                        Timer {
-                            interval: 60000
-                            running: true
-                            repeat: true
-                            onTriggered: dateText.text = Qt.formatDate(new Date(), "ddd, d MMM").toUpperCase()
-                        }
+                    Timer {
+                        interval: 1000
+                        running: true
+                        repeat: true
+                        onTriggered: clockText.text = Qt.formatTime(new Date(), "HH:mm")
                     }
                 }
 
-                // System Stats Section (CPU, RAM, Battery, Temp)
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
+                Text {
+                    id: dateText
+                    anchors.left: clockText.right
+                    anchors.leftMargin: 8
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 2
+                    text: Qt.formatDate(new Date(), "ddd, d MMM").toUpperCase()
+                    font.pixelSize: 11
+                    font.bold: true
+                    color: Qt.rgba(255, 255, 255, 0.6)
+                    
+                    Timer {
+                        interval: 60000
+                        running: true
+                        repeat: true
+                        onTriggered: dateText.text = Qt.formatDate(new Date(), "ddd, d MMM").toUpperCase()
+                    }
+                }
+            }
 
-                    // CPU
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "CPU"; font.pixelSize: 10; font.bold: true; color: "#ffffff"; Layout.preferredWidth: 28 }
-                        ProgressBar {
-                            id: cpuBar
-                            value: root.cpuUsage / 100.0
-                            Layout.fillWidth: true
-                            background: Rectangle { height: 4; radius: 2; color: Qt.rgba(255, 255, 255, 0.2) }
-                            contentItem: Item {
-                                Rectangle { width: cpuBar.visualPosition * parent.width; height: 4; radius: 2; color: "#ffffff" }
-                            }
-                        }
-                        Text { text: Math.round(root.cpuUsage) + "%"; font.pixelSize: 10; font.bold: true; color: "#ffffff"; Layout.preferredWidth: 28; horizontalAlignment: Text.AlignRight }
+            // 2. Stats Rows Column (Y: 55, height: 125)
+            Item {
+                x: 0
+                y: 55
+                width: 220
+                height: 125
+
+                // CPU Row
+                Item {
+                    x: 0
+                    y: 5
+                    width: 220
+                    height: 20
+
+                    Text {
+                        id: cpuLabel
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "CPU"
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "#ffffff"
+                        width: 32
                     }
 
-                    // RAM
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "RAM"; font.pixelSize: 10; font.bold: true; color: "#ffffff"; Layout.preferredWidth: 28 }
-                        ProgressBar {
-                            id: ramBar
-                            value: root.ramUsage / root.ramTotal
-                            Layout.fillWidth: true
-                            background: Rectangle { height: 4; radius: 2; color: Qt.rgba(255, 255, 255, 0.2) }
-                            contentItem: Item {
-                                Rectangle { width: ramBar.visualPosition * parent.width; height: 4; radius: 2; color: "#ffffff" }
-                            }
+                    ProgressBar {
+                        id: cpuBar
+                        anchors.left: cpuLabel.right
+                        anchors.right: cpuVal.left
+                        anchors.leftMargin: 4
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        value: root.cpuUsage / 100.0
+                        background: Rectangle { height: 4; radius: 2; color: Qt.rgba(255, 255, 255, 0.2) }
+                        contentItem: Item {
+                            Rectangle { width: cpuBar.visualPosition * parent.width; height: 4; radius: 2; color: "#ffffff" }
                         }
-                        Text { text: root.ramUsage.toFixed(1) + "G"; font.pixelSize: 10; font.bold: true; color: "#ffffff"; Layout.preferredWidth: 28; horizontalAlignment: Text.AlignRight }
                     }
 
-                    // Battery
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: root.isCharging ? "🔌 BAT" : "🔋 BAT"; font.pixelSize: 10; font.bold: true; color: "#ffffff"; Layout.preferredWidth: 28 }
-                        ProgressBar {
-                            id: batBar
-                            value: root.batteryPercent / 100.0
-                            Layout.fillWidth: true
-                            background: Rectangle { height: 4; radius: 2; color: Qt.rgba(255, 255, 255, 0.2) }
-                            contentItem: Item {
-                                Rectangle { width: batBar.visualPosition * parent.width; height: 4; radius: 2; color: "#ffffff" }
-                            }
-                        }
-                        Text { text: Math.round(root.batteryPercent) + "%"; font.pixelSize: 10; font.bold: true; color: "#ffffff"; Layout.preferredWidth: 28; horizontalAlignment: Text.AlignRight }
+                    Text {
+                        id: cpuVal
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Math.round(root.cpuUsage) + "%"
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "#ffffff"
+                        width: 32
+                        horizontalAlignment: Text.AlignRight
+                    }
+                }
+
+                // RAM Row
+                Item {
+                    x: 0
+                    y: 32
+                    width: 220
+                    height: 20
+
+                    Text {
+                        id: ramLabel
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "RAM"
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "#ffffff"
+                        width: 32
                     }
 
-                    // CPU Temperature
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "🌡️ TEMP"; font.pixelSize: 10; font.bold: true; color: "#ffffff"; Layout.preferredWidth: 28 }
-                        ProgressBar {
-                            id: tempBar
-                            value: root.cpuTemp / 100.0
-                            Layout.fillWidth: true
-                            background: Rectangle { height: 4; radius: 2; color: Qt.rgba(255, 255, 255, 0.2) }
-                            contentItem: Item {
-                                Rectangle { width: tempBar.visualPosition * parent.width; height: 4; radius: 2; color: "#ffffff" }
-                            }
+                    ProgressBar {
+                        id: ramBar
+                        anchors.left: ramLabel.right
+                        anchors.right: ramVal.left
+                        anchors.leftMargin: 4
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        value: root.ramUsage / root.ramTotal
+                        background: Rectangle { height: 4; radius: 2; color: Qt.rgba(255, 255, 255, 0.2) }
+                        contentItem: Item {
+                            Rectangle { width: ramBar.visualPosition * parent.width; height: 4; radius: 2; color: "#ffffff" }
                         }
-                        Text { text: Math.round(root.cpuTemp) + "°C"; font.pixelSize: 10; font.bold: true; color: "#ffffff"; Layout.preferredWidth: 28; horizontalAlignment: Text.AlignRight }
+                    }
+
+                    Text {
+                        id: ramVal
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.ramUsage.toFixed(1) + "G"
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "#ffffff"
+                        width: 32
+                        horizontalAlignment: Text.AlignRight
+                    }
+                }
+
+                // Battery Row
+                Item {
+                    x: 0
+                    y: 59
+                    width: 220
+                    height: 20
+
+                    Text {
+                        id: batLabel
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.isCharging ? "🔌 BAT" : "🔋 BAT"
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "#ffffff"
+                        width: 32
+                    }
+
+                    ProgressBar {
+                        id: batBar
+                        anchors.left: batLabel.right
+                        anchors.right: batVal.left
+                        anchors.leftMargin: 4
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        value: root.batteryPercent / 100.0
+                        background: Rectangle { height: 4; radius: 2; color: Qt.rgba(255, 255, 255, 0.2) }
+                        contentItem: Item {
+                            Rectangle { width: batBar.visualPosition * parent.width; height: 4; radius: 2; color: "#ffffff" }
+                        }
+                    }
+
+                    Text {
+                        id: batVal
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Math.round(root.batteryPercent) + "%"
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "#ffffff"
+                        width: 32
+                        horizontalAlignment: Text.AlignRight
+                    }
+                }
+
+                // Temp Row
+                Item {
+                    x: 0
+                    y: 86
+                    width: 220
+                    height: 20
+
+                    Text {
+                        id: tempLabel
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "🌡️ TEMP"
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "#ffffff"
+                        width: 32
+                    }
+
+                    ProgressBar {
+                        id: tempBar
+                        anchors.left: tempLabel.right
+                        anchors.right: tempVal.left
+                        anchors.leftMargin: 4
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        value: root.cpuTemp / 100.0
+                        background: Rectangle { height: 4; radius: 2; color: Qt.rgba(255, 255, 255, 0.2) }
+                        contentItem: Item {
+                            Rectangle { width: tempBar.visualPosition * parent.width; height: 4; radius: 2; color: "#ffffff" }
+                        }
+                    }
+
+                    Text {
+                        id: tempVal
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Math.round(root.cpuTemp) + "°C"
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "#ffffff"
+                        width: 32
+                        horizontalAlignment: Text.AlignRight
                     }
                 }
             }
