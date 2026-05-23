@@ -558,8 +558,8 @@ Item {
                         }
 
                         onMoved: {
-                            // Call playerctl via executable source to perform highly robust absolute timeline seeking!
-                            executableSource.runCommand("playerctl position " + progressSlider.value)
+                            // Call playerctl via executable source to perform highly robust absolute timeline seeking, formatted safely!
+                            executableSource.runCommand("playerctl position " + Math.round(progressSlider.value))
                         }
                     }
 
@@ -674,13 +674,19 @@ Item {
                             }
 
                             onMoved: {
-                                // Call playerctl via executable source to change volume with absolute system reliability!
-                                executableSource.runCommand("playerctl volume " + (volSlider.value / 100.0))
+                                // Call playerctl via executable source to change volume with absolute system reliability, formatted safely!
+                                executableSource.runCommand("playerctl volume " + (volSlider.value / 100.0).toFixed(2))
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    Component.onCompleted: {
+        // Start the zero-dependency CAVA WebSocket daemon silently in the background
+        var rawPath = Qt.resolvedUrl("../../cava_server.py").toString().replace("file://", "");
+        executableSource.runCommand("python3 " + rawPath + " &");
     }
 }
