@@ -685,8 +685,7 @@ Item {
     }
 
     Component.onCompleted: {
-        // Start the zero-dependency CAVA WebSocket daemon silently in the background
-        var rawPath = Qt.resolvedUrl("../../cava_server.py").toString().replace("file://", "");
-        executableSource.runCommand("python3 " + rawPath + " &");
+        // Write optimized CAVA configuration on startup so CAVA runs flawlessly with 15 bars!
+        executableSource.runCommand("mkdir -p ~/.config/chill-music-widget && echo -e '[general]\\nbars = 15\\nframerate = 60\\n\\n[input]\\nmethod = pulse\\nsource = auto\\n\\n[output]\\nmethod = raw\\nraw_target = /dev/stdout\\ndata_format = ascii\\nascii_max_range = 36' > ~/.config/chill-music-widget/cava.conf");
     }
 }
