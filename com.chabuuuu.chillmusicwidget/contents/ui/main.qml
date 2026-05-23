@@ -209,7 +209,7 @@ Item {
                     anchors.bottom: parent.bottom
                     anchors.bottomMargin: 4
                     text: Qt.formatDate(new Date(), "ddd, d MMM").toUpperCase()
-                    font.pixelSize: 9.5
+                    font.pixelSize: 9
                     font.bold: true
                     font.family: "Inter"
                     color: Qt.rgba(209, 213, 219, 0.8)
