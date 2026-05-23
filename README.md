@@ -11,6 +11,10 @@
 ![Linux](https://img.shields.io/badge/Linux-Desktop-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 ![License](https://img.shields.io/badge/License-MIT-cyan?style=for-the-badge)
 
+<br/>
+
+![Chill Music Widget Preview](preview.png)
+
 </div>
 
 ---
