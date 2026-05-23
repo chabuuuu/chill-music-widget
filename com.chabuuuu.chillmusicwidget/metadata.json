@@ -1,0 +1,20 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "haphuthinh332004@gmail.com",
+                "Name": "chabuuuu"
+            }
+        ],
+        "Category": "Multimedia",
+        "Description": "🎵 A stunning glassmorphism desktop music player & system stats widget for Linux. Shows album art, soundwave, CPU/RAM/Battery/Temp, Clock.",
+        "Icon": "multimedia-audio-player",
+        "Id": "com.chabuuuu.chillmusicwidget",
+        "Name": "Chill Music Widget",
+        "Version": "1.1.0",
+        "Website": "https://github.com/chabuuuu/chill-music-widget"
+    },
+    "X-Plasma-API-Minimum-Version": "5.20",
+    "X-Plasma-API-Version": "6.0"
+}

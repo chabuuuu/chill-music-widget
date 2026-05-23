@@ -50,7 +50,28 @@ Works with **any MPRIS-compatible music player** including:
 
 ## 📦 Installation
 
-### Quick Install (Recommended)
+This project now offers **two options** depending on your desktop environment:
+
+### Option 1: Native KDE Plasma Widget (Plasmoid) - Recommended for KDE
+This native version integrates seamlessly directly into your KDE desktop panels or desktop canvas, with **zero external Python processes** required.
+
+1. **Get it from the KDE Store:**
+   - Right-click your desktop → **Add Widgets** → **Get New Widgets** → **Download New Plasma Widgets**.
+   - Search for **"Chill Music Widget"** and click **Install**.
+
+2. **Or install it manually via CLI:**
+   ```bash
+   git clone https://github.com/chabuuuu/chill-music-widget.git
+   cd chill-music-widget
+   kpackagetool5 -t Plasma/Applet -i com.chabuuuu.chillmusicwidget
+   ```
+
+---
+
+### Option 2: Standalone Python/PyQt5 App (Universal Linux)
+Ideal for GNOME, XFCE, i3wm, Hyprland, and other non-KDE environments.
+
+#### Quick Install (Recommended)
 
 ```bash
 git clone https://github.com/chabuuuu/chill-music-widget.git
