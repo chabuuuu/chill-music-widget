@@ -120,6 +120,18 @@ Item {
         }
     }
 
+    // --- Command Execution Engine (Bypasses QML D-Bus limitations for Seeking & Volume) ---
+    PlasmaCore.DataSource {
+        id: executableSource
+        engine: "executable"
+        connectedSources: []
+        onNewData: disconnectSource(sourceName) // Run and clean once!
+        
+        function runCommand(cmd) {
+            connectSource(cmd)
+        }
+    }
+
     // --- Timer for Smooth Updates ---
     Timer {
         id: updateTimer
@@ -546,12 +558,8 @@ Item {
                         }
 
                         onMoved: {
-                            if (mprisSource.activePlayer) {
-                                var service = mprisSource.serviceForSource(mprisSource.activePlayer);
-                                var operation = service.operationDescription("SetPosition");
-                                operation.position = progressSlider.value * 1000000.0;
-                                service.startOperationCall(operation);
-                            }
+                            // Call playerctl via executable source to perform highly robust absolute timeline seeking!
+                            executableSource.runCommand("playerctl position " + progressSlider.value)
                         }
                     }
 
@@ -586,20 +594,28 @@ Item {
                             onClicked: root.callMediaCommand("Previous")
                         }
 
-                        // Circular glowing cyan play/pause button matching the design exactly!
+                        // Premium soft-translucent cyan circle play button (removes all glaring light!)
                         Rectangle {
                             id: playBtnCircle
                             Layout.preferredWidth: 40
                             Layout.preferredHeight: 40
                             radius: 20
-                            color: root.accentColor
-                            border.width: 0
+                            color: playMouseArea.containsMouse ? Qt.rgba(20, 255, 236, 0.95) : Qt.rgba(20, 255, 236, 0.7) // Beautiful soft cyan with hover glow!
 
-                            PlasmaComponents.ToolButton {
+                            Behavior on color { ColorAnimation { duration: 150 } }
+
+                            Text {
                                 anchors.centerIn: parent
-                                icon.name: root.isPlaying ? "media-playback-pause" : "media-playback-start"
-                                icon.color: "#0c0f12" // Dark gray symbol color matching design
-                                display: "IconOnly"
+                                text: root.isPlaying ? "⏸" : "▶"
+                                font.pixelSize: 16
+                                font.bold: true
+                                color: "#0c0f12" // Solid dark gray symbol matching mockup design exactly
+                            }
+
+                            MouseArea {
+                                id: playMouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
                                 onClicked: root.callMediaCommand("PlayPause")
                             }
                         }
@@ -658,12 +674,8 @@ Item {
                             }
 
                             onMoved: {
-                                if (mprisSource.activePlayer) {
-                                    var service = mprisSource.serviceForSource(mprisSource.activePlayer);
-                                    var operation = service.operationDescription("SetVolume");
-                                    operation.volume = volSlider.value / 100.0;
-                                    service.startOperationCall(operation);
-                                }
+                                // Call playerctl via executable source to change volume with absolute system reliability!
+                                executableSource.runCommand("playerctl volume " + (volSlider.value / 100.0))
                             }
                         }
                     }
