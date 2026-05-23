@@ -16,5 +16,7 @@
         "Website": "https://github.com/chabuuuu/chill-music-widget"
     },
     "X-Plasma-API-Minimum-Version": "5.20",
-    "X-Plasma-API-Version": "6.0"
+    "X-Plasma-API-Version": "6.0",
+    "X-Plasma-API": "declarativeappletscript",
+    "X-Plasma-MainScript": "ui/main.qml"
 }

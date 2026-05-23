@@ -9,6 +9,8 @@ Item {
     id: root
     width: 860
     height: 230
+    implicitWidth: 860
+    implicitHeight: 230
 
     // Set Plasmoid configuration
     Plasmoid.preferredWidth: width
@@ -306,19 +308,19 @@ Item {
 
                         PlasmaComponents.ToolButton {
                             icon.name: "media-skip-backward"
-                            display: PlasmaComponents.AbstractButton.IconOnly
+                            display: "IconOnly"
                             onClicked: root.callMediaCommand("Previous")
                         }
 
                         PlasmaComponents.ToolButton {
                             icon.name: root.isPlaying ? "media-playback-pause" : "media-playback-start"
-                            display: PlasmaComponents.AbstractButton.IconOnly
+                            display: "IconOnly"
                             onClicked: root.callMediaCommand("PlayPause")
                         }
 
                         PlasmaComponents.ToolButton {
                             icon.name: "media-skip-forward"
-                            display: PlasmaComponents.AbstractButton.IconOnly
+                            display: "IconOnly"
                             onClicked: root.callMediaCommand("Next")
                         }
                     }
