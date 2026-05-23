@@ -152,10 +152,11 @@ Item {
         service.startOperationCall(operation);
     }
 
-    // --- GORGEOUS GLASSMORPHISM CONTAINER ---
     Rectangle {
         id: widgetBackground
-        anchors.fill: parent
+        width: 860
+        height: 230
+        anchors.centerIn: parent
         radius: 24
         color: mouseArea.containsMouse ? Qt.rgba(255, 255, 255, 0.16) : Qt.rgba(255, 255, 255, 0.11)
         border.color: Qt.rgba(255, 255, 255, 0.28)
