@@ -13,8 +13,6 @@ Item {
     implicitHeight: 230
 
     // Set Plasmoid configuration
-    Plasmoid.preferredWidth: width
-    Plasmoid.preferredHeight: height
     Plasmoid.backgroundHints: Plasmoid.NoBackground
 
     // --- State & Variables ---
