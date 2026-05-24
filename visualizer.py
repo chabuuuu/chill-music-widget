@@ -9,8 +9,8 @@ class StitchWaveformVisualizer(QWidget):
         super().__init__(parent)
         self.bar_count = bar_count
         self.is_playing = False
-        self.bars = [0.2] * bar_count  # start with 20% height
-        self.target_bars = [0.2] * bar_count
+        self.bars = [0.12] * bar_count  # start with 12% height
+        self.target_bars = [0.12] * bar_count
         self.ambient_time = 0.0
         
         # 60 FPS repainting timer for fluid updates (approx 16ms)
@@ -25,28 +25,34 @@ class StitchWaveformVisualizer(QWidget):
         self.is_playing = playing
 
     def update_bars(self, values):
-        # Maps raw CAVA values (0-100) to 0.2-1.0
         for i in range(min(len(values), self.bar_count)):
-            # Normalize to 0.2 - 1.0 range
-            val = 0.2 + (float(values[i]) / 100.0) * 0.8
-            self.target_bars[i] = min(1.0, max(0.2, val))
+            raw = float(values[i]) / 100.0
+            
+            # Cân bằng tần số: Bass (i nhỏ) giảm lực, Treble (i lớn) tăng lực
+            freq_balance = 0.8 + (i / max(1, self.bar_count - 1)) * 0.4
+            
+            # Giảm power curve xuống 1.2 vì đã tắt autosens (dữ liệu thật hơn)
+            dynamic_val = math.pow(raw, 1.2) * freq_balance
+            
+            # Ép xung multiplier xuống mức rất thấp (0.55) để đảm bảo không bao giờ bị dựng ngược tất cả các cột
+            val = 0.12 + dynamic_val * 0.55
+            self.target_bars[i] = min(0.95, max(0.12, val))
 
     def update_animation(self):
         self.ambient_time += 0.05
-        has_active_signal = any(x > 0.21 for x in self.target_bars)
         
         for i in range(self.bar_count):
             # Smoothly transition height (exponential decay)
-            decay = 0.3 if self.target_bars[i] > self.bars[i] else 0.15
+            decay = 0.35 if self.target_bars[i] > self.bars[i] else 0.25
             self.bars[i] = self.bars[i] * (1.0 - decay) + self.target_bars[i] * decay
             
-            # Ambient float if not playing or silent
-            if not self.is_playing or not has_active_signal:
+            # Ambient float only when paused
+            if not self.is_playing:
                 # Generate a beautiful flowing sine wave pattern across the 15 bars
                 phase = self.ambient_time + i * 0.35
                 amplitude = 0.4 + math.sin(phase) * 0.2 + math.cos(phase * 0.6) * 0.1
-                self.bars[i] = max(0.2, min(0.9, amplitude))
-                self.target_bars[i] = 0.2
+                self.bars[i] = max(0.12, min(0.9, amplitude))
+                self.target_bars[i] = 0.12
                 
         self.update()
 

@@ -17,13 +17,26 @@ class CavaRunnerThread(QThread):
 
     def ensure_cava_config(self):
         os.makedirs(CONFIG_DIR, exist_ok=True)
+        # CAVA only outputs an even number of bars in raw ASCII mode.
+        # If the requested bar count is odd, we configure CAVA with the next even number
+        # so that it doesn't round down, and then we slice to the requested count in the parser.
+        cava_bars = self.bar_count
+        if cava_bars % 2 != 0:
+            cava_bars += 1
+
         # Create a standard config that pipes ASCII values separated by commas
         config_content = f"""
 [general]
-bars = {self.bar_count}
+bars = {cava_bars}
 framerate = 60
-autosens = 1
-overshoot = 20
+autosens = 0
+sensitivity = 50
+
+[smoothing]
+monstercat = 0
+integral = 50
+gravity = 150
+noise_reduction = 0.77
 
 [input]
 ; CAVA automatically selects the best backend (PipeWire, PulseAudio, or ALSA)
@@ -64,10 +77,18 @@ bar_delimiter = 44
                     
                 try:
                     # Parse chuỗi "12,14,20,..." thành list số nguyên
-                    parts = line.split(",")
-                    if len(parts) >= self.bar_count:
-                        # Extract the first N bars
-                        values = [int(x) for x in parts[:self.bar_count]]
+                    # Loại bỏ dấu phẩy thừa ở cuối dòng trước khi split
+                    line_clean = line.rstrip(",")
+                    parts = line_clean.split(",")
+                    
+                    values = [int(x) for x in parts if x.strip()]
+                    
+                    if len(values) >= self.bar_count:
+                        # Trích xuất số lượng cột mong muốn
+                        self.bars_updated.emit(values[:self.bar_count])
+                    elif len(values) > 0:
+                        # Nếu thiếu, bù đắp bằng các giá trị 0
+                        values += [0] * (self.bar_count - len(values))
                         self.bars_updated.emit(values)
                 except ValueError:
                     pass

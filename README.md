@@ -50,27 +50,6 @@ Works with **any MPRIS-compatible music player** including:
 
 ## 📦 Installation
 
-This project now offers **two options** depending on your desktop environment:
-
-### Option 1: Native KDE Plasma Widget (Plasmoid) - Recommended for KDE
-This native version integrates seamlessly directly into your KDE desktop panels or desktop canvas, with **zero external Python processes** required.
-
-1. **Get it from the KDE Store:**
-   - Right-click your desktop → **Add Widgets** → **Get New Widgets** → **Download New Plasma Widgets**.
-   - Search for **"Chill Music Widget"** and click **Install**.
-
-2. **Or install it manually via CLI:**
-   ```bash
-   git clone https://github.com/chabuuuu/chill-music-widget.git
-   cd chill-music-widget
-   kpackagetool5 -t Plasma/Applet -i com.chabuuuu.chillmusicwidget
-   ```
-
----
-
-### Option 2: Standalone Python/PyQt5 App (Universal Linux)
-Ideal for GNOME, XFCE, i3wm, Hyprland, and other non-KDE environments.
-
 #### Quick Install (Recommended)
 
 ```bash
@@ -103,26 +82,23 @@ pip3 install --user PyQt5 psutil
 
 **3. Run the widget:**
 
+Để chạy widget ngầm (background) và không dính terminal:
 ```bash
-python3 main.py
+nohup python3 main.py >/dev/null 2>&1 &
 ```
 
 ---
 
 ## 🚀 Usage
 
-After installation, you can:
+Sau khi cài đặt hoặc khởi chạy ngầm, Widget sẽ xuất hiện trên Desktop của bạn và hoàn toàn tàng hình khỏi thanh Taskbar.
 
-- **Launch from App Menu:** Search for `Chill Music Widget` in your applications
-- **Run directly:**
-  ```bash
-  python3 ~/.local/share/chill-music-widget/main.py
-  ```
-- **Right-click the widget** to access the context menu:
-  - 🔒 Lock / Unlock position
-  - 📌 Pin to Desktop (stays behind all windows)
-  - 🚀 Enable Launch on Startup
-  - ❌ Exit
+- **Khởi động cùng hệ thống:** Click chuột phải vào Widget -> chọn `Enable Launch on Startup`.
+- **System Tray:** Widget có một icon nhỏ dưới khay hệ thống (System Tray). Bạn có thể chuột phải vào icon này để:
+  - 🔒 Lock / Unlock position (khóa vị trí)
+  - 📌 Pin to Desktop (ghim dưới cùng)
+  - ❌ Exit (Tắt hoàn toàn Widget)
+- **Menu chuột phải:** Bạn cũng có thể click chuột phải trực tiếp lên Widget để mở menu tương tự.
 
 ---
 

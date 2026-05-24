@@ -12,7 +12,7 @@ Item {
     implicitWidth: 860
     implicitHeight: 230
 
-    // Set Plasmoid background hints
+    // Set Plasmoid background hints to hide default system frames
     Plasmoid.backgroundHints: Plasmoid.NoBackground
 
     // --- State & Variables ---
@@ -23,6 +23,7 @@ Item {
     property bool isPlaying: false
     property double trackPosition: 0
     property double trackLength: 0
+    property int lastVolume: 70
 
     // Fallbacks for system stats
     property double cpuUsage: 14
@@ -91,6 +92,11 @@ Item {
             if (pos !== undefined) {
                 root.trackPosition = pos / 1000000.0;
             }
+            
+            var vol = data[activePlayer]["Volume"];
+            if (vol !== undefined && typeof volSlider !== "undefined" && !volSlider.pressed) {
+                volSlider.value = Math.round(vol * 100);
+            }
         }
     }
 
@@ -120,7 +126,7 @@ Item {
         }
     }
 
-    // --- Command Execution Engine (Bypasses QML D-Bus limitations for Seeking & Volume) ---
+    // --- Command Execution Engine ---
     PlasmaCore.DataSource {
         id: executableSource
         engine: "executable"
@@ -161,16 +167,16 @@ Item {
         service.startOperationCall(operation);
     }
 
-    // ==================== GORGEOUS PIXEL-PERFECT GLASSMORPHISM CONTAINER ====================
-    // We use a fixed width/height container centered in root to mathematically prevent any desktop squishing or clipping!
+    // ==================== GLASSMORPHISM CONTAINER CARD ====================
+    // Centered with fixed pixel dimensions to prevent desktop grid resizing/clipping!
     Rectangle {
         id: widgetBackground
         width: 860
         height: 230
         anchors.centerIn: parent
-        radius: 40 // Rounded corners matching original card QSS 100%
-        color: mouseArea.containsMouse ? Qt.rgba(255, 255, 255, 0.14) : Qt.rgba(255, 255, 255, 0.08)
-        border.color: mouseArea.containsMouse ? Qt.rgba(20, 255, 236, 0.45) : Qt.rgba(255, 255, 255, 0.18) // Accent glowing cyan outline on hover!
+        radius: 40 // Matches mockup rounded corners 100%
+        color: mouseArea.containsMouse ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(255, 255, 255, 0.08)
+        border.color: mouseArea.containsMouse ? Qt.rgba(20, 255, 236, 0.45) : Qt.rgba(255, 255, 255, 0.15) // Accent glowing cyan outline on hover!
         border.width: 1
 
         Behavior on color { ColorAnimation { duration: 200 } }
@@ -182,259 +188,313 @@ Item {
             hoverEnabled: true
         }
 
-        // ==================== LEFT AREA: MUSIC PLAYER (Fixed Dimensions) ====================
-        Item {
-            id: leftPanel
+        // ==================== LEFT AREA: ALBUM ART & CONTROLS ====================
+        
+        // 1. Album Art (144x144, vertically centered, 24px left margin)
+        Rectangle {
+            id: artContainer
             x: 24
-            y: 24
-            width: 552
-            height: 182
+            y: 43
+            width: 144
+            height: 144
+            radius: 16
+            clip: true
+            color: Qt.rgba(255, 255, 255, 0.12)
+            border.color: Qt.rgba(255, 255, 255, 0.2)
+            border.width: 1
 
-            // 1. Album Art (Fixed 182x182 rounded square matching height perfectly)
-            Rectangle {
-                id: artContainer
+            Image {
+                anchors.fill: parent
+                source: root.albumArt || "multimedia-audio-player"
+                fillMode: Image.PreserveAspectCrop
+                smooth: true
+            }
+        }
+
+        // 2. Song Details & Interactive Player Controls Column
+        Item {
+            id: trackColumn
+            x: 192
+            y: 34
+            width: 400
+            height: 162
+
+            // Song Title
+            Text {
+                id: songTitleText
                 x: 0
                 y: 0
-                width: 182
-                height: 182
-                radius: 20
-                clip: true
-                color: Qt.rgba(255, 255, 255, 0.12)
-                border.color: Qt.rgba(255, 255, 255, 0.2)
-                border.width: 1
+                width: 400
+                text: root.songTitle
+                font.pixelSize: 18
+                font.bold: true
+                font.family: "Inter"
+                color: "#ffffff"
+                elide: Text.ElideRight
+            }
 
-                Image {
-                    anchors.fill: parent
-                    source: root.albumArt || "multimedia-audio-player"
-                    fillMode: Image.PreserveAspectCrop
-                    smooth: true
+            // Song Artist
+            Text {
+                id: songArtistText
+                x: 0
+                y: 28
+                width: 400
+                text: root.songArtist
+                font.pixelSize: 11
+                font.family: "Inter"
+                color: Qt.rgba(209, 213, 219, 0.85)
+                elide: Text.ElideRight
+            }
+
+            // 15-Bar Soundwave Visualizer (Syncs with live audio or breathing fallback)
+            WaveformVisualizer {
+                id: visualizer
+                x: 0
+                y: 50
+                width: 400
+                height: 24
+                isPlaying: root.isPlaying
+            }
+
+            // Progress Slider Timestamps
+            Text {
+                id: timeCurrent
+                x: 0
+                y: 82
+                width: 50
+                height: 14
+                text: root.formatTime(root.trackPosition)
+                font.pixelSize: 10
+                font.family: "monospace"
+                color: "#ffffff"
+            }
+
+            Text {
+                id: timeTotal
+                x: 350
+                y: 82
+                width: 50
+                height: 14
+                text: root.formatTime(root.trackLength)
+                font.pixelSize: 10
+                font.family: "monospace"
+                color: "#ffffff"
+                horizontalAlignment: Text.AlignRight
+            }
+
+            // Progress Seek Bar (Vibrant Glowing Cyan Slider)
+            Slider {
+                id: progressSlider
+                x: 0
+                y: 98
+                width: 400
+                height: 16
+                from: 0
+                to: Math.max(1, root.trackLength)
+                value: root.trackPosition
+                
+                background: Rectangle {
+                    x: progressSlider.leftPadding
+                    y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
+                    width: progressSlider.availableWidth
+                    height: 4
+                    radius: 2
+                    color: Qt.rgba(255, 255, 255, 0.2)
+
+                    Rectangle {
+                        width: progressSlider.visualPosition * parent.width
+                        height: parent.height
+                        color: root.accentColor
+                        radius: 2
+                    }
+                }
+
+                handle: Rectangle {
+                    x: progressSlider.leftPadding + progressSlider.visualPosition * (progressSlider.availableWidth - width)
+                    y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
+                    implicitWidth: 10
+                    implicitHeight: 10
+                    radius: 5
+                    color: root.accentColor
+                }
+
+                onMoved: {
+                    if (mprisSource.activePlayer) {
+                        executableSource.runCommand("playerctl -p " + mprisSource.activePlayer + " position " + Math.round(progressSlider.value));
+                    }
+                }
+
+                onPressedChanged: {
+                    if (!pressed) {
+                        if (mprisSource.activePlayer) {
+                            executableSource.runCommand("playerctl -p " + mprisSource.activePlayer + " position " + Math.round(progressSlider.value));
+                        }
+                    }
                 }
             }
 
-            // 2. Song details and controllers (Fixed Width: 348px)
+            // Media & Volume Control Buttons Row (No ugly gray borders, sleek hover transition)
             Item {
-                x: 202
-                y: 0
-                width: 350
-                height: 182
+                id: controlsRow
+                x: 0
+                y: 124
+                width: 400
+                height: 40
 
-                // Song Title
+                // Previous Button
                 Text {
-                    id: songTitleText
+                    id: prevBtn
                     x: 0
-                    y: 4
-                    width: 350
-                    text: root.songTitle
-                    font.pixelSize: 22
-                    font.bold: true
-                    font.family: "Inter"
-                    color: "#ffffff"
-                    elide: Text.ElideRight
-                }
-
-                // Song Artist
-                Text {
-                    id: songArtistText
-                    x: 0
-                    y: 30
-                    width: 350
-                    text: root.songArtist
-                    font.pixelSize: 13
-                    font.family: "Inter"
-                    color: Qt.rgba(209, 213, 219, 0.85)
-                    elide: Text.ElideRight
-                }
-
-                // 15-Bar soundwave visualizer (glowing cyan accent)
-                WaveformVisualizer {
-                    id: visualizer
-                    x: 0
-                    y: 54
-                    width: 350
+                    y: 5
+                    width: 30
                     height: 30
-                    isPlaying: root.isPlaying
-                }
-
-                // Seekbar and timestamps
-                Item {
-                    id: progressRow
-                    x: 0
-                    y: 96
-                    width: 350
-                    height: 20
-
-                    Text {
-                        id: timeCurrent
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: root.formatTime(root.trackPosition)
-                        font.pixelSize: 11
-                        font.family: "monospace"
-                        color: "#ffffff"
-                    }
-
-                    Slider {
-                        id: progressSlider
-                        anchors.left: timeCurrent.right
-                        anchors.right: timeTotal.left
-                        anchors.leftMargin: 12
-                        anchors.rightMargin: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                        from: 0
-                        to: Math.max(1, root.trackLength)
-                        value: root.trackPosition
-                        
-                        background: Rectangle {
-                            x: progressSlider.leftPadding
-                            y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 200
-                            implicitHeight: 4
-                            width: progressSlider.availableWidth
-                            height: implicitHeight
-                            radius: 2
-                            color: Qt.rgba(255, 255, 255, 0.2)
-
-                            Rectangle {
-                                width: progressSlider.visualPosition * parent.width
-                                height: parent.height
-                                color: root.accentColor // Glowing cyan slider track!
-                                radius: 2
-                            }
-                        }
-
-                        handle: Rectangle {
-                            x: progressSlider.leftPadding + progressSlider.visualPosition * (progressSlider.availableWidth - width)
-                            y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 12
-                            implicitHeight: 12
-                            radius: 6
-                            color: root.accentColor // Glowing cyan handle!
-                        }
-
-                        onMoved: {
-                            // Call playerctl with exact active player name to prevent any multi-player target mismatch!
-                            if (mprisSource.activePlayer) {
-                                var shortPlayerName = mprisSource.activePlayer.replace("org.mpris.MediaPlayer2.", "");
-                                executableSource.runCommand("playerctl -p " + shortPlayerName + " position " + Math.round(progressSlider.value));
-                            }
-                        }
-                    }
-
-                    Text {
-                        id: timeTotal
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: root.formatTime(root.trackLength)
-                        font.pixelSize: 11
-                        font.family: "monospace"
-                        color: "#ffffff"
-                    }
-                }
-
-                // Media Control Buttons & Volume Slider (Prev, Play, Next | Volume)
-                Item {
-                    x: 0
-                    y: 126
-                    width: 350
-                    height: 46
-
-                    RowLayout {
+                    text: "⏮"
+                    font.pixelSize: 18
+                    color: prevMouse.containsMouse ? root.accentColor : "#ffffff"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    
+                    MouseArea {
+                        id: prevMouse
                         anchors.fill: parent
-                        spacing: 16
+                        hoverEnabled: true
+                        onClicked: root.callMediaCommand("Previous")
+                    }
+                }
 
-                        PlasmaComponents.ToolButton {
-                            icon.name: "media-skip-backward"
-                            display: "IconOnly"
-                            Layout.preferredWidth: 30
-                            Layout.preferredHeight: 30
-                            onClicked: root.callMediaCommand("Previous")
+                // Premium Glowing Play/Pause Circle Button
+                Rectangle {
+                    id: playBtn
+                    x: 46
+                    y: 0
+                    width: 40
+                    height: 40
+                    radius: 20
+                    color: playMouse.containsMouse ? Qt.rgba(20, 255, 236, 0.95) : Qt.rgba(20, 255, 236, 0.75)
+                    
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                    
+                    Text {
+                        anchors.centerIn: parent
+                        text: root.isPlaying ? "⏸" : "▶"
+                        font.pixelSize: 15
+                        color: "#0c0f12"
+                    }
+                    
+                    MouseArea {
+                        id: playMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: root.callMediaCommand("PlayPause")
+                    }
+                }
+
+                // Next Button
+                Text {
+                    id: nextBtn
+                    x: 102
+                    y: 5
+                    width: 30
+                    height: 30
+                    text: "⏭"
+                    font.pixelSize: 18
+                    color: nextMouse.containsMouse ? root.accentColor : "#ffffff"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    
+                    MouseArea {
+                        id: nextMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: root.callMediaCommand("Next")
+                    }
+                }
+
+                // Volume Icon (Dynamic and Reactive mute toggle)
+                Text {
+                    id: volBtn
+                    x: 292
+                    y: 6
+                    width: 28
+                    height: 28
+                    text: {
+                        if (volSlider.value === 0) return "🔇";
+                        if (volSlider.value < 40) return "🔈";
+                        if (volSlider.value < 75) return "🔉";
+                        return "🔊";
+                    }
+                    font.pixelSize: 16
+                    color: volMouse.containsMouse ? root.accentColor : "#ffffff"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    
+                    MouseArea {
+                        id: volMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: {
+                            if (volSlider.value > 0) {
+                                root.lastVolume = volSlider.value;
+                                volSlider.value = 0;
+                            } else {
+                                volSlider.value = root.lastVolume || 70;
+                            }
+                            if (mprisSource.activePlayer) {
+                                var volumeVal = (volSlider.value / 100.0).toFixed(2);
+                                executableSource.runCommand("playerctl -p " + mprisSource.activePlayer + " volume " + volumeVal);
+                            }
                         }
+                    }
+                }
 
-                        // Premium soft-translucent cyan circle play button (removes all glaring light!)
+                // Volume Slider
+                Slider {
+                    id: volSlider
+                    x: 336
+                    y: 10
+                    width: 64
+                    height: 20
+                    from: 0
+                    to: 100
+                    value: 70
+
+                    background: Rectangle {
+                        x: volSlider.leftPadding
+                        y: volSlider.topPadding + volSlider.availableHeight / 2 - height / 2
+                        width: volSlider.availableWidth
+                        height: 4
+                        radius: 2
+                        color: Qt.rgba(255, 255, 255, 0.2)
+
                         Rectangle {
-                            id: playBtnCircle
-                            Layout.preferredWidth: 40
-                            Layout.preferredHeight: 40
-                            radius: 20
-                            color: playMouseArea.containsMouse ? Qt.rgba(20, 255, 236, 0.95) : Qt.rgba(20, 255, 236, 0.7) // Beautiful soft cyan with hover glow!
-
-                            Behavior on color { ColorAnimation { duration: 150 } }
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: root.isPlaying ? "⏸" : "▶"
-                                font.pixelSize: 16
-                                font.bold: true
-                                color: "#0c0f12" // Solid dark gray symbol matching mockup design exactly
-                            }
-
-                            MouseArea {
-                                id: playMouseArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: root.callMediaCommand("PlayPause")
-                            }
+                            width: volSlider.visualPosition * parent.width
+                            height: parent.height
+                            color: root.accentColor
+                            radius: 2
                         }
+                    }
 
-                        PlasmaComponents.ToolButton {
-                            icon.name: "media-skip-forward"
-                            display: "IconOnly"
-                            Layout.preferredWidth: 30
-                            Layout.preferredHeight: 30
-                            onClicked: root.callMediaCommand("Next")
+                    handle: Rectangle {
+                        x: volSlider.leftPadding + volSlider.visualPosition * (volSlider.availableWidth - width)
+                        y: volSlider.topPadding + volSlider.availableHeight / 2 - height / 2
+                        implicitWidth: 8
+                        implicitHeight: 8
+                        radius: 4
+                        color: root.accentColor
+                    }
+
+                    onMoved: {
+                        if (mprisSource.activePlayer) {
+                            var volumeVal = (volSlider.value / 100.0).toFixed(2);
+                            executableSource.runCommand("playerctl -p " + mprisSource.activePlayer + " volume " + volumeVal);
                         }
+                    }
 
-                        Item { Layout.fillWidth: true } // Stretch spacing
-
-                        // Volume controls
-                        PlasmaComponents.ToolButton {
-                            icon.name: "audio-volume-high"
-                            display: "IconOnly"
-                            Layout.preferredWidth: 28
-                            Layout.preferredHeight: 28
-                        }
-
-                        Slider {
-                            id: volSlider
-                            Layout.preferredWidth: 64
-                            Layout.preferredHeight: 20
-                            from: 0
-                            to: 100
-                            value: 70
-                            
-                            background: Rectangle {
-                                x: volSlider.leftPadding
-                                y: volSlider.topPadding + volSlider.availableHeight / 2 - height / 2
-                                implicitWidth: 64
-                                implicitHeight: 3
-                                width: volSlider.availableWidth
-                                height: implicitHeight
-                                radius: 1.5
-                                color: Qt.rgba(255, 255, 255, 0.2)
-
-                                Rectangle {
-                                    width: volSlider.visualPosition * parent.width
-                                    height: parent.height
-                                    color: root.accentColor
-                                    radius: 1.5
-                                }
-                            }
-
-                            handle: Rectangle {
-                                x: volSlider.leftPadding + volSlider.visualPosition * (volSlider.availableWidth - width)
-                                y: volSlider.topPadding + volSlider.availableHeight / 2 - height / 2
-                                implicitWidth: 8
-                                implicitHeight: 8
-                                radius: 4
-                                color: root.accentColor
-                            }
-
-                            onMoved: {
-                                // Call playerctl with exact active player name to change volume with absolute reliability!
-                                if (mprisSource.activePlayer) {
-                                    var shortPlayerName = mprisSource.activePlayer.replace("org.mpris.MediaPlayer2.", "");
-                                    executableSource.runCommand("playerctl -p " + shortPlayerName + " volume " + (volSlider.value / 100.0).toFixed(2));
-                                }
+                    onPressedChanged: {
+                        if (!pressed) {
+                            if (mprisSource.activePlayer) {
+                                var volumeVal = (volSlider.value / 100.0).toFixed(2);
+                                executableSource.runCommand("playerctl -p " + mprisSource.activePlayer + " volume " + volumeVal);
                             }
                         }
                     }
@@ -442,7 +502,7 @@ Item {
             }
         }
 
-        // ==================== RIGHT AREA: SYSTEM INFO & CLOCK (Fixed Position) ====================
+        // ==================== RIGHT AREA: SYSTEM INFO & CLOCK ====================
         Item {
             id: rightPanel
             x: 616
@@ -450,20 +510,20 @@ Item {
             width: 220
             height: 182
 
-            // 1. Clock & Date Header
+            // Clock & Date Stacked Header
             Item {
                 id: clockHeader
                 x: 0
                 y: 0
                 width: 220
-                height: 40
+                height: 50
 
                 Text {
                     id: clockText
-                    anchors.left: parent.left
-                    anchors.bottom: parent.bottom
+                    x: 0
+                    y: 0
                     text: Qt.formatTime(new Date(), "HH:mm")
-                    font.pixelSize: 34
+                    font.pixelSize: 32
                     font.weight: Font.Light
                     font.family: "Inter"
                     color: "#ffffff"
@@ -478,15 +538,13 @@ Item {
 
                 Text {
                     id: dateText
-                    anchors.left: clockText.right
-                    anchors.leftMargin: 10
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 4
+                    x: 0
+                    y: 34
                     text: Qt.formatDate(new Date(), "ddd, d MMM").toUpperCase()
-                    font.pixelSize: 9
+                    font.pixelSize: 10
                     font.bold: true
                     font.family: "Inter"
-                    color: Qt.rgba(209, 213, 219, 0.8)
+                    color: Qt.rgba(209, 213, 219, 0.7)
                     
                     Timer {
                         interval: 60000
@@ -497,12 +555,11 @@ Item {
                 }
             }
 
-            // 2. Stats Rows Column (Y: 55, height: 125)
+            // Stats Columns (CPU, RAM, Battery, Temp) - Emojis replaced with 100% compatible symbols
             Column {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: clockHeader.bottom
-                anchors.topMargin: 12
+                x: 0
+                y: 56
+                width: 220
                 spacing: 6
 
                 // CPU Row
@@ -558,7 +615,7 @@ Item {
                         id: ramLabel
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "🧠 RAM"
+                        text: "⚙ RAM"
                         font.pixelSize: 10
                         font.family: "Inter"
                         color: Qt.rgba(209, 213, 219, 0.8)
@@ -602,7 +659,7 @@ Item {
                         id: batLabel
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        text: root.isCharging ? "🔌 Battery" : "🔋 Battery"
+                        text: root.isCharging ? "🔌 BAT" : "⚡ BAT"
                         font.pixelSize: 10
                         font.family: "Inter"
                         color: Qt.rgba(209, 213, 219, 0.8)
@@ -646,7 +703,7 @@ Item {
                         id: tempLabel
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "🌡️ Temp"
+                        text: "☀ TEMP"
                         font.pixelSize: 10
                         font.family: "Inter"
                         color: Qt.rgba(209, 213, 219, 0.8)
@@ -683,9 +740,23 @@ Item {
             }
         }
     }
-
     Component.onCompleted: {
-        // Write optimized CAVA configuration on startup via robust Python one-liner to bypass any shell-compatibility limitations!
-        executableSource.runCommand("python3 -c \"import os; os.makedirs(os.path.expanduser('~/.config/chill-music-widget'), exist_ok=True); open(os.path.expanduser('~/.config/chill-music-widget/cava.conf'), 'w').write('[general]\\nbars = 15\\nframerate = 60\\n\\n[input]\\nmethod = pulse\\nsource = auto\\n\\n[output]\\nmethod = raw\\nraw_target = /dev/stdout\\ndata_format = ascii\\nascii_max_range = 36\\n')\"");
+        // Generates the optimal line-buffered CAVA configuration on startup with explicit semicolon delimiter and 30 widened frequency cutoffs (20Hz - 20000Hz)
+        executableSource.runCommand("python3 -c \"import os; os.makedirs(os.path.expanduser('~/.config/chill-music-widget'), exist_ok=True); open(os.path.expanduser('~/.config/chill-music-widget/cava_plasmoid.conf'), 'w').write('[general]\\nbars = 30\\nframerate = 60\\nlower_cutoff_freq = 20\\nhigher_cutoff_freq = 20000\\n\\n[input]\\nmethod = pulse\\nsource = auto\\n\\n[output]\\nmethod = raw\\nraw_target = /dev/stdout\\ndata_format = ascii\\nascii_max_range = 36\\nbar_delimiter = 59\\n')\"");
+
+        // Warm up and connect MPRIS active player on startup immediately if already playing
+        if (mprisSource.sources.length > 0) {
+            var found = "";
+            for (var i = 0; i < mprisSource.sources.length; i++) {
+                var src = mprisSource.sources[i];
+                if (mprisSource.data[src] && mprisSource.data[src]["PlaybackStatus"] === "Playing") {
+                    found = src;
+                    break;
+                }
+            }
+            if (found === "") found = mprisSource.sources[0];
+            mprisSource.activePlayer = found;
+            if (found !== "") mprisSource.connectSource(found);
+        }
     }
 }

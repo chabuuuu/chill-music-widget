@@ -17,6 +17,7 @@ import config
 from visualizer import StitchWaveformVisualizer
 from mpris_thread import MprisMonitorThread
 from cava_thread import CavaRunnerThread
+from clickable_slider import ClickableSlider
 
 def get_cpu_temp():
     try:
@@ -101,7 +102,7 @@ class MprisChillWidget(QWidget):
         self.is_dragging_timeline = False
         
         # Frameless transparent desktop window attributes
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnBottomHint | Qt.SubWindow)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnBottomHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         
         self.init_ui()
@@ -183,7 +184,7 @@ class MprisChillWidget(QWidget):
         self.progress_layout.addLayout(self.time_layout)
         
         # Custom Cyan Slider Seekbar
-        self.timeline_slider = QSlider(Qt.Horizontal, self.track_col)
+        self.timeline_slider = ClickableSlider(Qt.Horizontal, self.track_col)
         self.timeline_slider.setObjectName("TimelineSlider")
         self.timeline_slider.setRange(0, 100)
         self.timeline_slider.setValue(0)
@@ -231,7 +232,7 @@ class MprisChillWidget(QWidget):
         self.vol_btn.clicked.connect(self.media_mute)
         self.controls_row.addWidget(self.vol_btn)
         
-        self.vol_slider = QSlider(Qt.Horizontal, self.track_col)
+        self.vol_slider = ClickableSlider(Qt.Horizontal, self.track_col)
         self.vol_slider.setObjectName("VolumeSlider")
         self.vol_slider.setFixedWidth(64)
         self.vol_slider.setRange(0, 100)
@@ -552,8 +553,8 @@ class MprisChillWidget(QWidget):
         self.config_data["volume"] = val
         config.save_config(self.config_data)
         
-        scaled_vol = val / 100.0
-        self.run_player_cmd(["volume", str(scaled_vol)])
+        # Dùng pactl để chỉnh âm lượng tổng của hệ thống thay vì âm lượng mpris (nhiều app không support mpris volume)
+        subprocess.run(["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{val}%"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         if val == 0:
             self.vol_btn.setText("🔇")
@@ -570,10 +571,11 @@ class MprisChillWidget(QWidget):
         config.save_config(self.config_data)
         
         if is_muted:
-            self.run_player_cmd(["volume", "0.0"])
+            subprocess.run(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             self.vol_btn.setText("🔇")
             self.vol_slider.setValue(0)
         else:
+            subprocess.run(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             vol = self.config_data.get("volume", 70)
             self.set_media_volume(vol)
             self.vol_slider.setValue(vol)
@@ -645,7 +647,7 @@ class MprisChillWidget(QWidget):
         if flags & Qt.WindowStaysOnBottomHint:
             self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool)
         else:
-            self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnBottomHint | Qt.SubWindow)
+            self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnBottomHint | Qt.Tool)
         self.show()
 
     def toggle_autostart_option(self):

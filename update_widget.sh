@@ -46,11 +46,17 @@ else
     exit 1
 fi
 
-# 5. Refresh Desktop
+# 5. Clear QML Cache
+echo "🧹 Clearing KDE QML binary caches..."
+rm -rf "$HOME/.cache/plasmashell/qmlcache"
+rm -rf "$HOME/.cache/qmlcache"
+echo "✅ Caches cleared successfully."
+
+# 6. Refresh Desktop
 echo "🔄 Refreshing KDE Plasma Shell..."
 if command -v kstart5 &>/dev/null; then
     kquitapp5 plasmashell &>/dev/null || true
-    sleep 1
+    sleep 1.5
     kstart5 plasmashell &>/dev/null &
     disown
 elif command -v plasmashell &>/dev/null; then
