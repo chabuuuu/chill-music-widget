@@ -81,8 +81,7 @@ pip3 install --user PyQt5 psutil
 ```
 
 **3. Run the widget:**
-
-Để chạy widget ngầm (background) và không dính terminal:
+To run the widget in the background without keeping the terminal open:
 ```bash
 nohup python3 main.py >/dev/null 2>&1 &
 ```
@@ -91,14 +90,14 @@ nohup python3 main.py >/dev/null 2>&1 &
 
 ## 🚀 Usage
 
-Sau khi cài đặt hoặc khởi chạy ngầm, Widget sẽ xuất hiện trên Desktop của bạn và hoàn toàn tàng hình khỏi thanh Taskbar.
+After installation or running in the background, the widget will appear on your Desktop and stay completely hidden from the Taskbar.
 
-- **Khởi động cùng hệ thống:** Click chuột phải vào Widget -> chọn `Enable Launch on Startup`.
-- **System Tray:** Widget có một icon nhỏ dưới khay hệ thống (System Tray). Bạn có thể chuột phải vào icon này để:
-  - 🔒 Lock / Unlock position (khóa vị trí)
-  - 📌 Pin to Desktop (ghim dưới cùng)
-  - ❌ Exit (Tắt hoàn toàn Widget)
-- **Menu chuột phải:** Bạn cũng có thể click chuột phải trực tiếp lên Widget để mở menu tương tự.
+- **Launch on Startup:** Right-click the widget -> select `Enable Launch on Startup`.
+- **System Tray:** The widget places a small icon in your System Tray. You can right-click this icon to:
+  - 🔒 Lock / Unlock position
+  - 📌 Pin to Desktop (keeps the widget below all other windows)
+  - ❌ Exit (completely close the widget)
+- **Context Menu:** You can also right-click directly on the widget to open the same menu.
 
 ---
 
